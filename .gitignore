@@ -1,0 +1,10 @@
+/jar-object-reader/target/
+/jar-reader-api/target/
+/jar-reader-api/jar-reader-api.iml
+/jav-viewer/target/
+/jav-viewer/jar-viewer.iml
+/.idea/
+/target/
+/jarreader.iml
+/jar-object-reader/jar-object-reader.iml
+/jar-event-reader/jar-event-reader.iml

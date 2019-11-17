@@ -1,4 +1,4 @@
-package valtman.jar.reader.object.util;
+package valtman.jar.reader.object.test.data;
 
 /**
  * Test java class to create .class files

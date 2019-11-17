@@ -6,6 +6,9 @@ import org.objectweb.asm.MethodVisitor;
 import java.util.Arrays;
 
 public class DiffClassVisitor extends ClassVisitor {
+//    ClassDataModel.ClassDataModelBuilder classDataModelBuilder;
+
+
     public DiffClassVisitor(int api) {
         super(api);
     }

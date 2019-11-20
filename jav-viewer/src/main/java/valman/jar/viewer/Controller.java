@@ -27,9 +27,13 @@ public class Controller {
             }
             this.jarDiffFrame.setTreeValue(new DefaultMutableTreeNode("Please wait"));
             try {
-                //TODO cancel previous job
+                //TODO avoid double cancellation while waiting for service result
 //                currentJob.getAndSet(this.jarReaderService.getDiff(firstFile, secondFile)
-//                        .thenAccept(jarDiffModel -> this.jarDiffFrame.setTreeValue(ModelUtil.transformJarDiffModels(jarDiffModel))))
+//                        .thenAccept(jarDiffModel -> this.jarDiffFrame.setTreeValue(ModelUtil.transformJarDiffModels(jarDiffModel)))
+//                .exceptionally(throwable -> {
+//                    //TODO should check possible exception and avoid explore unexpected one
+//                    return new DefaultMutableTreeNode(throwable.getCause().getMessage());
+//                }))
 //                        .cancel(true);
                 this.jarDiffFrame.setTreeValue(ModelUtil.transformJarDiffModels(this.jarReaderService.getDiff(firstFile, secondFile)));
             } catch (Exception e) {

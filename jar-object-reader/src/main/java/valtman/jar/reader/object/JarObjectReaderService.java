@@ -13,7 +13,6 @@ import valtman.jar.reader.util.ReaderUtils;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -59,47 +58,39 @@ public class JarObjectReaderService implements JarReaderService {
 
     @Override
     public JarDiffModel getDiff(File firstJar, File secondJar) {
-        try {
-            CompletableFuture<Map<String, ClassReader>> firstJarParser = CompletableFuture.supplyAsync(() -> ReaderUtils.load(firstJar), executor);
-            CompletableFuture<Map<String, ClassReader>> secondJarParser = CompletableFuture.supplyAsync(() -> ReaderUtils.load(secondJar), executor);
-            CompletableFuture.allOf(firstJarParser, secondJarParser).join();
-            Map<String, ClassReader> firstClassReaderMap = firstJarParser.get();
-            Map<String, ClassReader> secondClassReaderMap = secondJarParser.get();
-            return CompletableFuture.supplyAsync(() -> {
-                Set<String> classes = new HashSet<>(firstClassReaderMap.keySet());
-                classes.addAll(secondClassReaderMap.keySet());
+        CompletableFuture<Map<String, ClassReader>> firstJarParser = CompletableFuture.supplyAsync(() -> ReaderUtils.load(firstJar), executor);
+        CompletableFuture<Map<String, ClassReader>> secondJarParser = CompletableFuture.supplyAsync(() -> ReaderUtils.load(secondJar), executor);
+        return CompletableFuture.allOf(firstJarParser, secondJarParser)
+                .thenApplyAsync(v -> {
+                    Map<String, ClassReader> firstClassReaderMap = firstJarParser.join();
+                    Map<String, ClassReader> secondClassReaderMap = secondJarParser.join();
+                    Set<String> classes = new HashSet<>(firstClassReaderMap.keySet());
+                    classes.addAll(secondClassReaderMap.keySet());
 
-                List<JarDiffModel> classDiffModel = classes.parallelStream()
-                        .map(classPath -> DiffUtil.compareClass(classPath, firstClassReaderMap.get(classPath), secondClassReaderMap.get(classPath)))
-                        .collect(Collectors.toList());
+                    List<JarDiffModel> classDiffModel = classes.parallelStream()
+                            .map(classPath -> DiffUtil.compareClass(classPath, firstClassReaderMap.get(classPath), secondClassReaderMap.get(classPath)))
+                            .collect(Collectors.toList());
 
-                return classDiffModel
-                        .stream()
-                        .reduce(JarDiffModel.jarDiffBuilder()
-                                        .updated(new LinkedList<>())
-                                        .added(new LinkedList<>())
-                                        .unchanged(new LinkedList<>())
-                                        .deleted(new LinkedList<>())
-                                        .build(),
-                                (jarDiffModel, jarDiffModel2) -> {
-                                    Optional.ofNullable(jarDiffModel2.getAdded())
-                                            .ifPresent(jarDiffModel.getAdded()::addAll);
-                                    Optional.ofNullable(jarDiffModel2.getDeleted())
-                                            .ifPresent(jarDiffModel.getDeleted()::addAll);
-                                    Optional.ofNullable(jarDiffModel2.getUpdated())
-                                            .ifPresent(jarDiffModel.getUpdated()::addAll);
-                                    Optional.ofNullable(jarDiffModel2.getUnchanged())
-                                            .ifPresent(jarDiffModel.getUnchanged()::addAll);
-                                    return jarDiffModel;
-                                });
+                    return classDiffModel
+                            .stream()
+                            .reduce(JarDiffModel.jarDiffBuilder()
+                                            .updated(new LinkedList<>())
+                                            .added(new LinkedList<>())
+                                            .unchanged(new LinkedList<>())
+                                            .deleted(new LinkedList<>())
+                                            .build(),
+                                    (jarDiffModel, jarDiffModel2) -> {
+                                        Optional.ofNullable(jarDiffModel2.getAdded())
+                                                .ifPresent(jarDiffModel.getAdded()::addAll);
+                                        Optional.ofNullable(jarDiffModel2.getDeleted())
+                                                .ifPresent(jarDiffModel.getDeleted()::addAll);
+                                        Optional.ofNullable(jarDiffModel2.getUpdated())
+                                                .ifPresent(jarDiffModel.getUpdated()::addAll);
+                                        Optional.ofNullable(jarDiffModel2.getUnchanged())
+                                                .ifPresent(jarDiffModel.getUnchanged()::addAll);
+                                        return jarDiffModel;
+                                    });
 
-            }, executor).get();
-        } catch (InterruptedException e) {
-            return null;
-//            return CompletableFuture.failedFuture(e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e.getCause());
-        }
+                }, executor).join();
     }
-
 }
